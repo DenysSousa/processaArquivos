@@ -58,13 +58,13 @@ public class StartImportacao {
     @Autowired
     private JobLauncher jobLauncher;
 
-    private final Job processaArquivosJob;
+    private final Job processaRemessaJob;
 
     private int pagina;
 
-    public StartImportacao(NamedParameterJdbcTemplate jdbcTemplate, Job processaArquivosJob) {
+    public StartImportacao(NamedParameterJdbcTemplate jdbcTemplate, Job processaRemessaJob) {
         this.jdbcTemplate = jdbcTemplate;
-        this.processaArquivosJob = processaArquivosJob;
+        this.processaRemessaJob = processaRemessaJob;
     }
 
     @PostMapping("/importar")
@@ -79,7 +79,7 @@ public class StartImportacao {
                 .addString("filePath", filePath)
                 .toJobParameters();
 
-        jobLauncher.run(processaArquivosJob, jobParameters);
+        jobLauncher.run(processaRemessaJob, jobParameters);
 
         return ResponseEntity
                 .ok()

@@ -10,10 +10,10 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableBatchProcessing
-public class ProcessaArquivos {
+public class ProcessaRemessas {
 
     @Bean
-    public Job processaArquivosJob(JobRepository jobRepository, Step stepRemessa, Step stepRegistro) {
+    public Job processaRemessaJob(JobRepository jobRepository, Step stepRemessa, Step stepRegistro) {
         return new JobBuilder("processRemessaJob", jobRepository)
                 .start(stepRemessa)
                 .next(stepRegistro)

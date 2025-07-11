@@ -26,7 +26,7 @@ public class RegistroEstep {
     @Bean
     public Step stepRegistro(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("stepRegistro", jobRepository)
-                .<Node, String>chunk(500, transactionManager)
+                .<Node, String>chunk(600, transactionManager)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)

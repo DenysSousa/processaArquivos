@@ -24,13 +24,23 @@ public class RegistroWriter implements ItemWriter<String> {
 
     @Override
     public void write(Chunk<? extends String> chunk) throws Exception {
-        String sql = "INSERT INTO registro (remessa_id, pagina, jsondados) VALUES (?, ?, ?::jsonb)";
-        for (String json : chunk) {
+        String sqlInsert = "INSERT INTO registro (remessa_id, pagina, jsondados) VALUES ";//(?, ?, ?::jsonb)";
+        String sqlValues = "";
+        for (var json : chunk) {
+            json = json.replaceAll("'", "''");
+
+            sqlValues += "(" + remessaId + "," + pagina + ", '" + json + "'::jsonb),";
+
             if (contador > 0 && contador % 100 == 0) {
                 pagina++;
             }
-            jdbcTemplate.update(sql, remessaId, pagina, json);
             contador++;
+        }
+
+        if (!sqlValues.isEmpty()) {
+            sqlValues = sqlValues.substring(0, sqlValues.length() - 1);
+
+            jdbcTemplate.update(sqlInsert + sqlValues);
         }
     }
 }

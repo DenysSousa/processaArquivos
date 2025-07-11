@@ -12,43 +12,26 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.config.Task;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.sql.Date;
 
 @Configuration
 public class RemessaStep {
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
 
-    @Bean
-    public Step stepRemessa(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
-        return new StepBuilder("stepRemessa", jobRepository)
-                .tasklet(remessaTasklet(), transactionManager)
-                .build();
+    private final Tasklet remessaTasklet;
+
+    public RemessaStep(Tasklet remessaTasklet) {
+        this.remessaTasklet = remessaTasklet;
     }
 
     @Bean
-    public Tasklet remessaTasklet() {
-        return (contribution, context) -> {
-            String filePath = context.getStepContext().getJobParameters().get("filePath").toString();
-            String fileName = FileUtils.GetName(filePath, false);
-
-            String sqlSelect = "SELECT ID FROM REMESSA WHERE NOME = ?";
-            Long id;
-
-            try {
-                id = jdbcTemplate.queryForObject(sqlSelect, Long.class, fileName);
-            } catch (EmptyResultDataAccessException e) {
-                String sqlInsert = "INSERT INTO REMESSA (NOME, VIGENCIA, TIPO) VALUES (?, ?, ?) RETURNING id";
-                Date vigencia = DataUtils.CompToDate(fileName.substring(fileName.length() - 6));
-                String tipo = FileUtils.GetLastFolder(filePath);
-                id = jdbcTemplate.queryForObject(sqlInsert, Long.class, fileName, vigencia, tipo);
-            }
-
-            context.getStepContext().getStepExecution().getJobExecution()
-                    .getExecutionContext().put("remessaId", id);
-            return RepeatStatus.FINISHED;
-        };
+    public Step stepRemessa(JobRepository jobRepository,
+                            PlatformTransactionManager transactionManager,
+                            Tasklet remessaTasklet) {
+        return new StepBuilder("stepRemessa", jobRepository)
+                .tasklet(remessaTasklet, transactionManager)
+                .build();
     }
 }

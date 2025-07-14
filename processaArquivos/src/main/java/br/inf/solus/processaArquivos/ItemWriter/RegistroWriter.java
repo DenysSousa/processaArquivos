@@ -19,7 +19,7 @@ public class RegistroWriter implements ItemWriter<String> {
     private Long remessaId;
 
     private int pagina = 1;
-    private int contador = 0;
+    private int contador = 1;
 
 
     @Override

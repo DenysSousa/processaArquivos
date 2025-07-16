@@ -1,8 +1,8 @@
 package br.inf.solus.processaArquivos.Step;
 
-import br.inf.solus.processaArquivos.ItemProcessor.RegistroProcessor;
-import br.inf.solus.processaArquivos.ItemReader.RegistroReader;
-import br.inf.solus.processaArquivos.ItemWriter.RegistroWriter;
+import br.inf.solus.processaArquivos.ItemProcessor.RegistroTnummProcessor;
+import br.inf.solus.processaArquivos.ItemReader.RegistroTnummReader;
+import br.inf.solus.processaArquivos.ItemWriter.RegistroTnummWriter;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -13,20 +13,20 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.w3c.dom.Node;
 
 @Configuration
-public class RegistroEstep {
+public class RegistroTnummStep {
     @Autowired
-    private RegistroReader reader;
+    private RegistroTnummReader reader;
 
     @Autowired
-    private RegistroProcessor processor;
+    private RegistroTnummProcessor processor;
 
     @Autowired
-    private RegistroWriter writer;
+    private RegistroTnummWriter writer;
 
     @Bean
-    public Step stepRegistro(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
-        return new StepBuilder("stepRegistro", jobRepository)
-                .<Node, String>chunk(600, transactionManager)
+    public Step stepRegistroTnumm(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+        return new StepBuilder("stepRegistroTnumm", jobRepository)
+                .<Node, String>chunk(200, transactionManager)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)

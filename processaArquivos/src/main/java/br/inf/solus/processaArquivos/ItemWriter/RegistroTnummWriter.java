@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @StepScope
-public class RegistroWriter implements ItemWriter<String> {
+public class RegistroTnummWriter implements ItemWriter<String> {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

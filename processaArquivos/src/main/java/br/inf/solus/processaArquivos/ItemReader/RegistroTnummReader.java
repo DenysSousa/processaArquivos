@@ -16,12 +16,13 @@ import java.util.List;
 
 @Component
 @StepScope
-public class RegistroReader implements ItemReader<Node> {
+public class RegistroTnummReader implements ItemReader<Node> {
 
     private final List<Node> blocos = new ArrayList<>();
     private int currentIndex = 0;
 
-    public RegistroReader(@Value("#{jobParameters['filePath']}") String filePath) throws Exception {
+    @StepScope
+    public RegistroTnummReader(@Value("#{jobParameters['filePath']}") String filePath) throws Exception {
         File xmlFile = new File(filePath);
         DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
         Document doc = builder.parse(xmlFile);

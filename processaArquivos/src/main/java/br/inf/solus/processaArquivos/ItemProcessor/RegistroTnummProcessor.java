@@ -15,7 +15,7 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.StringWriter;
 
 @Component
-public class RegistroProcessor implements ItemProcessor<Node, String> {
+public class RegistroTnummProcessor implements ItemProcessor<Node, String> {
 
     @Override
     public String process(Node node) throws Exception {

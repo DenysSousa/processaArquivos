@@ -24,9 +24,28 @@ public class FileUtils {
         return LReturn;
     }
 
-    public static String GetLastFolder(String filePath){
+    public static String GetLastFolder(String filePath, Integer position){
         Path path = Paths.get(filePath);
-        Path parent = path.getParent();
-        return parent != null ? parent.getFileName().toString() : "";
+
+        // Se o caminho for um arquivo, começar pelo pai
+        if (!path.toFile().isDirectory()) {
+            path = path.getParent();
+        }
+
+        // Subir a quantidade de pastas conforme posição
+        for (int i = 0; i < position; i++) {
+            if (path != null && path.getParent() != null) {
+                path = path.getParent();
+            } else {
+                // Chegou na raiz ou não tem mais pais
+                break;
+            }
+        }
+
+        if (path == null) {
+            return "";
+        }
+
+        return path.getFileName() != null ? path.getFileName().toString() : path.toString();
     }
 }

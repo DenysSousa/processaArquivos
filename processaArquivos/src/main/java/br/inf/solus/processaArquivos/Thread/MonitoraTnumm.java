@@ -1,5 +1,6 @@
 package br.inf.solus.processaArquivos.Thread;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
@@ -8,10 +9,14 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +32,9 @@ public class MonitoraTnumm {
 
     private static final String DiretorioDisponivel = "disponiveis/tnumm";
     private static final String DiretorioProcessado = "processados/tnumm";
+
+    // Pool fixo de até 4 threads para processar arquivos
+    private final ExecutorService jobExecutor = Executors.newFixedThreadPool(1);
 
     @PostConstruct
     public void iniciarMonitoramento() {
@@ -51,10 +59,28 @@ public class MonitoraTnumm {
             File[] arquivos = caminhoDisponiveis.toFile().listFiles(File::isFile);
 
             for (File arquivo : arquivos != null ? arquivos : new File[0]) {
+
+                try {
+                    long size1 = arquivo.length();
+                    Thread.sleep(2000);
+                    long size2 = arquivo.length();
+
+                    if (size1 != size2) {
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.out.printf("Erro ao validar arquivo em processo! %s%n", e.getMessage());
+                    return;
+                }
+
                 String nomeArquivo = arquivo.getName();
                 String nomeSemExtensao = nomeArquivo.contains(".")
                         ? nomeArquivo.substring(0, nomeArquivo.lastIndexOf('.'))
                         : nomeArquivo;
+
+                nomeSemExtensao = (nomeSemExtensao.contains("--"))
+                        ? nomeSemExtensao.substring(0, nomeSemExtensao.indexOf("--"))
+                        : nomeSemExtensao;
 
                 Path destinoFinal = caminhoProcessados.resolve(nomeSemExtensao);
 
@@ -69,29 +95,33 @@ public class MonitoraTnumm {
 
                 try {
                     Files.move(origem, destino, StandardCopyOption.REPLACE_EXISTING);
-                    iniciarJobAsync(destino);
+                    enviarParaFilaDeExecucao(destino);
                     System.out.printf("✔ Arquivo '%s' movido para '%s'%n", nomeArquivo, destino);
                 } catch (IOException e) {
                     System.out.println("Erro ao mover o arquivo " + origem + "! " + e.getMessage());
                 }
             }
-        }, 0, 10, TimeUnit.SECONDS);
+        }, 0, 2, TimeUnit.SECONDS);
     }
 
-    private void iniciarJobAsync(Path caminhoCompletoDoArquivo) {
-        new Thread(() -> {
+    private void enviarParaFilaDeExecucao(Path caminhoCompletoDoArquivo) {
+        jobExecutor.submit(() -> {
             try {
+                System.out.printf("♠ %s Chegou no enviarParaFilaDeExecucao com %s%n",
+                        LocalDateTime.now(), caminhoCompletoDoArquivo);
+
                 JobParameters jobParameters = new JobParametersBuilder()
                         .addString("filePath", caminhoCompletoDoArquivo.toString())
                         .addLong("timestamp", System.currentTimeMillis()) // Evita execução duplicada
                         .toJobParameters();
 
                 JobExecution execution = jobLauncher.run(processaRemessaTnummJob, jobParameters);
-                System.out.println("Job iniciado para arquivo: " + caminhoCompletoDoArquivo);
+                System.out.printf("✅ %s Job finalizado para %s com status %s%n",
+                        LocalDateTime.now(), caminhoCompletoDoArquivo.getFileName(), execution.getStatus());
             } catch (Exception e) {
-                System.err.println("Erro ao executar job para arquivo: " + caminhoCompletoDoArquivo);
-                System.err.println(e.getMessage());
+                System.err.printf("❌ Erro ao executar job para %s: %s%n",
+                        caminhoCompletoDoArquivo.getFileName(), e.getMessage());
             }
-        }).start();
+        });
     }
 }

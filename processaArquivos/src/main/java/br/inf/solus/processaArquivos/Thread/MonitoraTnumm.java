@@ -41,7 +41,7 @@ public class MonitoraTnumm {
         String path = System.getenv("ARQUIVOS_DIR");
 
         if (path == null || path.isBlank()) {
-            System.err.println("Erro: Variável de ambiente 'ARQUIVOS_DIR' não está definida.");
+            System.err.println("✖ Erro: Variável de ambiente 'ARQUIVOS_DIR' não está definida.");
             return;
         }
 
@@ -49,7 +49,7 @@ public class MonitoraTnumm {
         Path caminhoProcessados = Paths.get(path, DiretorioProcessado);
 
         if (!Files.exists(caminhoDisponiveis) || !Files.isDirectory(caminhoDisponiveis)) {
-            System.err.println("Erro: Subpasta '" + caminhoDisponiveis + "' não existe ou não é um diretório.");
+            System.err.println("✖ Erro: Subpasta '" + caminhoDisponiveis + "' não existe ou não é um diretório.");
             return;
         }
 
@@ -69,7 +69,7 @@ public class MonitoraTnumm {
                         return;
                     }
                 } catch (Exception e) {
-                    System.out.printf("Erro ao validar arquivo em processo! %s%n", e.getMessage());
+                    System.out.printf("✖ Erro ao validar arquivo em processo! %s%n", e.getMessage());
                     return;
                 }
 
@@ -87,7 +87,8 @@ public class MonitoraTnumm {
                 try {
                     Files.createDirectories(destinoFinal);
                 } catch (IOException e) {
-                    System.out.println("Erro ao criar a pasta " + destinoFinal + "! " + e.getMessage());
+                    System.out.println("✖ Erro ao criar a pasta " + destinoFinal + "! " + e.getMessage());
+                    return;
                 }
 
                 Path origem = arquivo.toPath();
@@ -95,11 +96,13 @@ public class MonitoraTnumm {
 
                 try {
                     Files.move(origem, destino, StandardCopyOption.REPLACE_EXISTING);
-                    enviarParaFilaDeExecucao(destino);
-                    System.out.printf("✔ Arquivo '%s' movido para '%s'%n", nomeArquivo, destino);
+                    System.out.printf("♣ Arquivo '%s' movido para '%s'%n", nomeArquivo, destino);
                 } catch (IOException e) {
-                    System.out.println("Erro ao mover o arquivo " + origem + "! " + e.getMessage());
+                    System.out.println("✖ Erro ao mover o arquivo " + origem + "! " + e.getMessage());
+                    return;
                 }
+
+                enviarParaFilaDeExecucao(destino);
             }
         }, 0, 2, TimeUnit.SECONDS);
     }
@@ -107,19 +110,20 @@ public class MonitoraTnumm {
     private void enviarParaFilaDeExecucao(Path caminhoCompletoDoArquivo) {
         jobExecutor.submit(() -> {
             try {
-                System.out.printf("♠ %s Chegou no enviarParaFilaDeExecucao com %s%n",
-                        LocalDateTime.now(), caminhoCompletoDoArquivo);
-
                 JobParameters jobParameters = new JobParametersBuilder()
                         .addString("filePath", caminhoCompletoDoArquivo.toString())
-                        .addLong("timestamp", System.currentTimeMillis()) // Evita execução duplicada
+                        .addLong("timestamp", System.currentTimeMillis())
                         .toJobParameters();
 
+                System.out.printf("✔ %s Job para %s INICIADO %n",
+                        LocalDateTime.now(), caminhoCompletoDoArquivo.getFileName());
+
                 JobExecution execution = jobLauncher.run(processaRemessaTnummJob, jobParameters);
-                System.out.printf("✅ %s Job finalizado para %s com status %s%n",
+
+                System.out.printf("✔ %s Job para %s FINALIZADO com status %s%n",
                         LocalDateTime.now(), caminhoCompletoDoArquivo.getFileName(), execution.getStatus());
             } catch (Exception e) {
-                System.err.printf("❌ Erro ao executar job para %s: %s%n",
+                System.err.printf("✖ Erro ao executar job para %s: %s%n",
                         caminhoCompletoDoArquivo.getFileName(), e.getMessage());
             }
         });

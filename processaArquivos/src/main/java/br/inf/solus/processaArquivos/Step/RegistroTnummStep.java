@@ -4,6 +4,7 @@ import br.inf.solus.processaArquivos.ItemProcessor.RegistroTnummProcessor;
 import br.inf.solus.processaArquivos.ItemReader.RegistroTnummReader;
 import br.inf.solus.processaArquivos.ItemWriter.RegistroTnummWriter;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.w3c.dom.Node;
 
 @Configuration
 public class RegistroTnummStep {
+
     @Autowired
     private RegistroTnummReader reader;
 
@@ -23,6 +25,9 @@ public class RegistroTnummStep {
     @Autowired
     private RegistroTnummWriter writer;
 
+    @Autowired
+    private StepListener erroStepListener;
+
     @Bean
     public Step stepRegistroTnumm(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("stepRegistroTnumm", jobRepository)
@@ -30,6 +35,7 @@ public class RegistroTnummStep {
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
+                .listener(erroStepListener)
                 .build();
     }
 }

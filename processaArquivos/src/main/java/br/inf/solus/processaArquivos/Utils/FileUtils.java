@@ -1,19 +1,23 @@
 package br.inf.solus.processaArquivos.Utils;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 public class FileUtils {
 
-    public static String GetName(String filepath){
+    private static final String BASE_FOLDER = System.getenv("ARQUIVOS_DIR");
+
+    public static String GetName(String filepath) {
         return GetName(filepath, true);
     }
 
-    public static String GetName(String filePath, Boolean includeExtension){
+    public static String GetName(String filePath, Boolean includeExtension) {
         String LReturn = "";
-        try{
-            LReturn  = Paths.get(filePath).getFileName().toString();
-        }catch(Exception e) {
+        try {
+            LReturn = Paths.get(filePath).getFileName().toString();
+        } catch (Exception e) {
             LReturn = filePath;
         }
 
@@ -24,7 +28,7 @@ public class FileUtils {
         return LReturn;
     }
 
-    public static String GetLastFolder(String filePath, Integer position){
+    public static String GetLastFolder(String filePath, Integer position) {
         Path path = Paths.get(filePath);
 
         // Se o caminho for um arquivo, começar pelo pai
@@ -47,5 +51,47 @@ public class FileUtils {
         }
 
         return path.getFileName() != null ? path.getFileName().toString() : path.toString();
+    }
+
+    public static Path AvailabePath(String serviceFolder) {
+        Path availabePath = Paths.get(BASE_FOLDER, "disponiveis/" + serviceFolder);
+
+        if (!Files.exists(availabePath) || !Files.isDirectory(availabePath)) {
+            System.err.println("✖ Erro: Subpasta '" + availabePath + "' não existe ou não é um diretório.");
+            return null;
+        }
+
+        return availabePath;
+    }
+
+    public static Path MoveToBase(String subFolderOfBase, Path originFile) {
+        if (BASE_FOLDER == null || BASE_FOLDER.isBlank()) {
+            throw new IllegalStateException("Variável de ambiente 'ARQUIVOS_DIR' não está definida.");
+        }
+
+        String fileName = originFile.getFileName().toString();
+        String rawFileName = fileName.contains(".")
+                ? fileName.substring(0, fileName.lastIndexOf('.'))
+                : fileName;
+
+        if (rawFileName.contains("--")) {
+            rawFileName = rawFileName.substring(0, rawFileName.indexOf("--"));
+        }
+
+        Path targetFolder = Paths.get(BASE_FOLDER, subFolderOfBase, rawFileName);
+
+        try {
+            Files.createDirectories(targetFolder);
+
+            Path finalPath = targetFolder.resolve(fileName);
+            Files.move(originFile, finalPath, StandardCopyOption.REPLACE_EXISTING);
+
+            System.out.printf("✔ Arquivo '%s' movido para '%s'%n", fileName, finalPath);
+            return finalPath;
+        } catch (Exception e) {
+            System.err.printf("✖ Erro ao mover o arquivo %s para o destino %s! - %s%n", originFile, targetFolder,
+                    e.getMessage());
+            return null;
+        }
     }
 }

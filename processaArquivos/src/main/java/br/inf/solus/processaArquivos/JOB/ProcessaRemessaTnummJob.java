@@ -13,10 +13,12 @@ import org.springframework.context.annotation.Configuration;
 public class ProcessaRemessaTnummJob {
 
     @Bean
-    public Job jobProcessaRemessaTnumm(JobRepository jobRepository, Step stepRemessa, Step stepRegistroTnumm) {
+    public Job jobProcessaRemessaTnumm(JobRepository jobRepository, Step stepRemessa, Step stepRegistroTnumm,
+                                       Step stepMoverArquivoProcessado) {
         return new JobBuilder("jobProcessaRemessaTnumm", jobRepository)
                 .start(stepRemessa)
                 .next(stepRegistroTnumm)
+                .next(stepMoverArquivoProcessado)
                 .build();
     }
 

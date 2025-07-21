@@ -1,5 +1,6 @@
 package br.inf.solus.processaArquivos.Thread;
 
+import br.inf.solus.processaArquivos.Utils.FileUtils;
 import jakarta.annotation.PostConstruct;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
@@ -30,26 +31,14 @@ public class MonitoraTnumm {
     @Autowired
     private Job processaRemessaTnummJob;
 
-    private static final String DiretorioDisponivel = "disponiveis/tnumm";
-    private static final String DiretorioProcessado = "processados/tnumm";
-
     // Pool fixo de até 4 threads para processar arquivos
     private final ExecutorService jobExecutor = Executors.newFixedThreadPool(1);
 
     @PostConstruct
     public void iniciarMonitoramento() {
-        String path = System.getenv("ARQUIVOS_DIR");
 
-        if (path == null || path.isBlank()) {
-            System.err.println("✖ Erro: Variável de ambiente 'ARQUIVOS_DIR' não está definida.");
-            return;
-        }
-
-        Path caminhoDisponiveis = Paths.get(path, DiretorioDisponivel);
-        Path caminhoProcessados = Paths.get(path, DiretorioProcessado);
-
-        if (!Files.exists(caminhoDisponiveis) || !Files.isDirectory(caminhoDisponiveis)) {
-            System.err.println("✖ Erro: Subpasta '" + caminhoDisponiveis + "' não existe ou não é um diretório.");
+        Path caminhoDisponiveis = FileUtils.AvailabePath("tnumm");
+        if (caminhoDisponiveis == null) {
             return;
         }
 
@@ -73,38 +62,15 @@ public class MonitoraTnumm {
                     return;
                 }
 
-                String nomeArquivo = arquivo.getName();
-                String nomeSemExtensao = nomeArquivo.contains(".")
-                        ? nomeArquivo.substring(0, nomeArquivo.lastIndexOf('.'))
-                        : nomeArquivo;
+                Path destino = FileUtils.MoveToBase("processando/tnumm", arquivo.toPath());
 
-                nomeSemExtensao = (nomeSemExtensao.contains("--"))
-                        ? nomeSemExtensao.substring(0, nomeSemExtensao.indexOf("--"))
-                        : nomeSemExtensao;
-
-                Path destinoFinal = caminhoProcessados.resolve(nomeSemExtensao);
-
-                try {
-                    Files.createDirectories(destinoFinal);
-                } catch (IOException e) {
-                    System.out.println("✖ Erro ao criar a pasta " + destinoFinal + "! " + e.getMessage());
-                    return;
-                }
-
-                Path origem = arquivo.toPath();
-                Path destino = destinoFinal.resolve(nomeArquivo);
-
-                try {
-                    Files.move(origem, destino, StandardCopyOption.REPLACE_EXISTING);
-                    System.out.printf("♣ Arquivo '%s' movido para '%s'%n", nomeArquivo, destino);
-                } catch (IOException e) {
-                    System.out.println("✖ Erro ao mover o arquivo " + origem + "! " + e.getMessage());
+                if (destino == null) {
                     return;
                 }
 
                 enviarParaFilaDeExecucao(destino);
             }
-        }, 0, 2, TimeUnit.SECONDS);
+        }, 0, 5, TimeUnit.SECONDS);
     }
 
     private void enviarParaFilaDeExecucao(Path caminhoCompletoDoArquivo) {

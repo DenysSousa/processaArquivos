@@ -31,7 +31,7 @@ public class MonitoraTnumm {
     @Autowired
     private Job processaRemessaTnummJob;
 
-    // Pool fixo de até 4 threads para processar arquivos
+    // Pool fixo de 1 thread para processar arquivos
     private final ExecutorService jobExecutor = Executors.newFixedThreadPool(1);
 
     @PostConstruct

@@ -1,13 +1,26 @@
 package br.inf.solus.processaArquivos.Utils;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 
 public class FileUtils {
 
     private static final String BASE_FOLDER = System.getenv("ARQUIVOS_DIR");
+
+    public static void AllPermission(Path file) {
+        try {
+            Set<PosixFilePermission> perms = PosixFilePermissions.fromString("rwxrwxrwx");
+            Files.setPosixFilePermissions(file, perms);
+        } catch (Exception e) {
+            System.out.printf("Não foi possível dar permissão para o arquivo! %s%n", e.getMessage());
+        }
+    }
 
     public static String GetName(String filepath) {
         return GetName(filepath, true);
@@ -82,9 +95,11 @@ public class FileUtils {
 
         try {
             Files.createDirectories(targetFolder);
+            AllPermission(targetFolder);
 
             Path finalPath = targetFolder.resolve(fileName);
             Files.move(originFile, finalPath, StandardCopyOption.REPLACE_EXISTING);
+            AllPermission(finalPath);
 
             System.out.printf("✔ Arquivo '%s' movido para '%s'%n", fileName, finalPath);
             return finalPath;

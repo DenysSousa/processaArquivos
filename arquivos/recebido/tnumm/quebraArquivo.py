@@ -6,6 +6,8 @@ from datetime import datetime
 # --- Configurações ---
 CHUNK_SIZE = 200_000_000  # 200 MB (aprox. em caracteres)
 ENCODING = 'utf-8'
+MAX_SIZE_MB = 200
+MAX_SIZE_FILE = MAX_SIZE_MB * 1024 * 1024 #200MB
 
 # --- Funções auxiliares ---
 def log(msg, level="INFO"):
@@ -51,15 +53,6 @@ def move_arquivos():
     temp_folder = os.path.join(os.path.dirname(input_path), base_name)
     log(temp_folder)
     os.makedirs(temp_folder, exist_ok=True)
-    
-    # Caminhos base
-    base_recebido = os.path.normpath(os.environ.get("MONITOR_PATH"))
-    base_disponiveis = base_recebido.replace("recebido", "disponiveis")
-
-    # Identifica a subpasta
-    subpasta = get_subfolder(input_path)
-    destino = os.path.join(base_disponiveis, subpasta)
-    os.makedirs(destino, exist_ok=True)
 
     # Move arquivos quebrados para a pasta de destino
     for fname in os.listdir(temp_folder):
@@ -75,6 +68,15 @@ def move_arquivos():
         log(f"Ao tentar remover arquivos: {e}", "Erro")
 
 # --- Função principal ---
+def verifica_tamanho():
+    file_size = os.path.getsize(input_path)
+
+    # Se menor que 200MB, apenas move
+    if file_size < MAX_SIZE_FILE:
+        log(f"Arquivo menor que {MAX_SIZE_MB}MB. Movendo para: {destino}")
+        shutil.move(input_path, os.path.join(destino, os.path.basename(input_path)))
+        sys.exit(0)
+
 def quebrar_arquivo():
     nome_arquivo = os.path.splitext(os.path.basename(input_path))[0]
     output_dir = os.path.join(os.path.dirname(input_path), nome_arquivo)
@@ -123,4 +125,15 @@ if __name__ == '__main__':
         sys.exit(1)
 
     input_path = sys.argv[1]
+    
+    # Caminhos base
+    base_recebido = os.path.normpath(os.environ.get("MONITOR_PATH"))
+    base_disponiveis = base_recebido.replace("recebido", "disponiveis")
+
+    # Identifica a subpasta
+    subpasta = get_subfolder(input_path)
+    destino = os.path.join(base_disponiveis, subpasta)
+    os.makedirs(destino, exist_ok=True)
+    
+    verifica_tamanho()
     quebrar_arquivo()

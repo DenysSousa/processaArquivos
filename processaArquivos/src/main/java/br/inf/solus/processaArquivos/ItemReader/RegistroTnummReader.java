@@ -22,13 +22,13 @@ public class RegistroTnummReader implements ItemReader<Node> {
     private int currentIndex = 0;
 
     @StepScope
-    public RegistroTnummReader(@Value("#{jobParameters['filePath']}") String filePath,
-                               @Value("#{stepExecutionContext['tipo']}") String tipo) throws Exception {
+    public RegistroTnummReader(@Value("#{jobParameters['filePath']}") String filePath) throws Exception {
         File xmlFile = new File(filePath);
         DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
         Document doc = builder.parse(xmlFile);
 
-        extract(doc, tipo);
+        extract(doc, "materiais");
+        extract(doc, "medicamentos");
     }
 
     private void extract(Document doc, String tag) {

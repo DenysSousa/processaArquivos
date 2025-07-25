@@ -32,8 +32,13 @@ def encontrar_posicao_de_corte(trecho):
         return -1, None
 
     tag_final, posicao_final = max(marcadores_validos.items(), key=lambda x: x[1])
-    size_tag = len(tag_final)
     
+    if tag_final == '</medicamentos>' and trecho[:11] == '<materiais>':
+        tag_final = '</materiais>'
+        posicao_final = trecho.rfind(tag_final)
+
+    size_tag = len(tag_final)
+
     if tag_final == '<quantidadeTotalR902>':
         size_tag = 0
 

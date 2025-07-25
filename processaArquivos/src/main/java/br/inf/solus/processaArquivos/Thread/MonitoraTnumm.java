@@ -11,11 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -76,6 +72,8 @@ public class MonitoraTnumm {
     private void enviarParaFilaDeExecucao(Path caminhoCompletoDoArquivo) {
         jobExecutor.submit(() -> {
             try {
+                System.gc();
+
                 JobParameters jobParameters = new JobParametersBuilder()
                         .addString("filePath", caminhoCompletoDoArquivo.toString())
                         .addLong("timestamp", System.currentTimeMillis())
@@ -91,6 +89,8 @@ public class MonitoraTnumm {
             } catch (Exception e) {
                 System.err.printf("✖ Erro ao executar job para %s: %s%n",
                         caminhoCompletoDoArquivo.getFileName(), e.getMessage());
+            }finally {
+                System.gc();
             }
         });
     }

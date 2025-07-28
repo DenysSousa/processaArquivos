@@ -1,6 +1,7 @@
 import os
 import sys
 import shutil
+import mmap
 from datetime import datetime
 
 # --- Configurações ---
@@ -14,12 +15,30 @@ def log(msg, level="INFO"):
     agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{level}] {agora} - {msg}")
 
-def extrair_cabecalho_e_trailer(texto):
-    fim_tipo_carga = texto.find("</tipoCarga>") + len("</tipoCarga>")
-    inicio_trailer = texto.rfind("<quantidadeTotalR902>")
-    if fim_tipo_carga == -1 or inicio_trailer == -1:
-        raise Exception("Tags </tipoCarga> ou <quantidadeTotalR902> não encontradas.")
-    return texto[:fim_tipo_carga], texto[inicio_trailer:], fim_tipo_carga, inicio_trailer
+def extrair_comeco_e_final(bytesMap):
+    limite_inicial = 1000
+
+    trecho = bytesMap[:limite_inicial]  # acessa um pedaço (como uma string)
+    texto = trecho.decode('utf-8', errors='ignore')
+    pos_corte_cabecalho = texto.find("</tipoCarga>")
+    
+    while pos_corte_cabecalho == -1:
+        limite_inicial += 1000
+        trecho = bytesMap[:limite_inicial]  # acessa um pedaço (como uma string)
+        texto = trecho.decode('utf-8', errors='ignore')
+        pos_corte_cabecalho = texto.find("</tipoCarga>")
+
+    inicio_dados = pos_corte_cabecalho + len("</tipoCarga>")
+
+    #Pega o começo padrão de todos os arquivos gerados
+    comeco = texto[:inicio_dados]
+
+    #Pega a parte final do arquivo
+    final = bytesMap[-2000:].decode('utf-8', errors='ignore')
+    final = final[final.find("<quantidadeTotalR902>"):]
+    
+    return comeco, final, inicio_dados
+    
 
 def encontrar_posicao_de_corte(trecho):
     marcadores = {
@@ -48,7 +67,7 @@ def encontrar_posicao_de_corte(trecho):
 def get_subfolder(path):
     partes = os.path.normpath(path).split(os.sep)
     try:
-        idx = partes.index("recebido")
+        idx = partes.index("recebidos")
         return partes[idx + 1]
     except ValueError:
         return "desconhecido"
@@ -86,39 +105,45 @@ def quebrar_arquivo():
     nome_arquivo = os.path.splitext(os.path.basename(input_path))[0]
     output_dir = os.path.join(os.path.dirname(input_path), nome_arquivo)
     os.makedirs(output_dir, exist_ok=True)
+    
+    log(f"Leitura do arquivo com o mmap: {input_path}")
+    with open(input_path, 'r+b') as f:
+        bytesMap = mmap.mmap(f.fileno(), 0)  # mapeia o arquivo todo
 
-    log(f"Lendo arquivo completo: {input_path}")
-    with open(input_path, 'r', encoding=ENCODING) as f:
-        texto = f.read()
-
-    cabecalho, trailer, inicio_dados, fim_dados = extrair_cabecalho_e_trailer(texto)
-    log("Cabecalho e trailer extraídos.")
+    comeco, final, inicio_dados = extrair_comeco_e_final(bytesMap)
+    log("Cabecalho e final extraídos.")
 
     posicao_base = inicio_dados
     indice = 1
 
-    while posicao_base < fim_dados:
-        trecho = texto[posicao_base:posicao_base + CHUNK_SIZE]
+    while posicao_base > 0:
+        tMap = bytesMap[posicao_base:posicao_base + CHUNK_SIZE]
+        trecho = tMap.decode('utf-8', errors='ignore')
         pos_corte, tag_usada = encontrar_posicao_de_corte(trecho)
 
         if pos_corte == -1:
             log(f"Nenhuma tag de corte encontrada no trecho {indice}. Parando.")
             break
 
-        copy_ate = posicao_base + pos_corte
-        conteudo = texto[posicao_base:copy_ate]
+        conteudo = trecho[:pos_corte]
 
         nome_saida = os.path.join(output_dir, f"{nome_arquivo}--{indice}.xml")
         with open(nome_saida, 'w', encoding=ENCODING) as f_out:
-            f_out.write(cabecalho)
+            f_out.write(comeco)
             f_out.write(conteudo)
-            f_out.write(trailer)
+            f_out.write(final)
 
         log(f"Arquivo gerado: {nome_saida} (tag de corte: {tag_usada})")
 
-        posicao_base = copy_ate
+        posicao_base += pos_corte
         indice += 1
+        
+        if tag_usada == '<quantidadeTotalR902>':
+            posicao_base = 0
 
+
+    # Libera o mmap da memória
+    bytesMap.close()
     move_arquivos()
 
     log("Processo finalizado.")
@@ -133,7 +158,7 @@ if __name__ == '__main__':
     
     # Caminhos base
     base_recebido = os.path.normpath(os.environ.get("MONITOR_PATH"))
-    base_disponiveis = base_recebido.replace("recebido", "disponiveis")
+    base_disponiveis = base_recebido.replace("recebidos", "disponiveis")
 
     # Identifica a subpasta
     subpasta = get_subfolder(input_path)

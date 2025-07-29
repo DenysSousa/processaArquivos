@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,8 +28,12 @@ public class MonitoraTnumm {
     @Autowired
     private Job processaRemessaTnummJob;
 
-    // Pool fixo de 1 thread para processar arquivos
-    private final ExecutorService jobExecutor = Executors.newFixedThreadPool(1);
+    private final Integer filesFromThread =
+            Optional.ofNullable(System.getenv("ARQUIVOS_POR_THREAD"))
+                    .map(Integer::valueOf)
+                    .orElse(1);
+
+    private final ExecutorService jobExecutor = Executors.newFixedThreadPool(filesFromThread);
 
     @PostConstruct
     public void iniciarMonitoramento() {
@@ -93,5 +98,6 @@ public class MonitoraTnumm {
                 System.gc();
             }
         });
+        System.gc();
     }
 }

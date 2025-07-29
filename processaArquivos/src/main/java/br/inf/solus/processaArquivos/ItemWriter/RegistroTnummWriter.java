@@ -24,12 +24,15 @@ public class RegistroTnummWriter implements ItemWriter<String> {
 
     @Override
     public void write(Chunk<? extends String> chunk) throws Exception {
-        String sqlInsert = "INSERT INTO registro (remessa_id, pagina, jsondados) VALUES ";//(?, ?, ?::jsonb)";
-        String sqlValues = "";
+        StringBuilder sbInsert = new StringBuilder("INSERT INTO registro (remessa_id, pagina, jsondados) VALUES ");
+
         for (var json : chunk) {
             json = json.replaceAll("'", "''");
 
-            sqlValues += "(" + remessaId + "," + pagina + ", '" + json + "'::jsonb),";
+
+            String values = "(" + remessaId + "," + pagina + ", '" + json + "'::jsonb),";
+
+            sbInsert.append(values);
 
             if (contador > 0 && contador % 100 == 0) {
                 pagina++;
@@ -37,10 +40,9 @@ public class RegistroTnummWriter implements ItemWriter<String> {
             contador++;
         }
 
-        if (!sqlValues.isEmpty()) {
-            sqlValues = sqlValues.substring(0, sqlValues.length() - 1);
+        String sqlInsert = sbInsert.toString();
+        sqlInsert = sqlInsert.substring(0, sqlInsert.length() - 1);
 
-            jdbcTemplate.update(sqlInsert + sqlValues);
-        }
+        jdbcTemplate.update(sqlInsert);
     }
 }
